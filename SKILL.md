@@ -118,6 +118,12 @@ The cognitive phases define the **reasoning order** the agent follows when execu
 
 Step-by-step skill execution referencing cognitive phases:
 
+0. **SETUP** — Download Resources
+   - Clone or download scripts from `https://github.com/THIAGONOMA/geo-seo-skills`
+   - Place them in `skillschain/resources/geo-seo/`
+   - Install Python dependencies: `pip install -r skillschain/resources/geo-seo/requirements.txt`
+   - Verify scripts are available: `ls skillschain/resources/geo-seo/scripts/`
+
 1. **SENSE** — Discovery Phase
    - Fetch homepage HTML via {{MCP: mcp-browser}} or WebFetch
    - Extract key pages from sitemap.xml or internal links (max 50 pages)
@@ -125,17 +131,17 @@ Step-by-step skill execution referencing cognitive phases:
    - Detect business type by analyzing homepage patterns
 
 2. **CONTEXTUALIZE** — Parallel Analysis
-   - Launch 5 analysis tracks simultaneously:
-     - AI Visibility: citability scoring, AI crawler access, llms.txt, brand mentions
-     - Platform Analysis: ChatGPT, Perplexity, Google AIO readiness
-     - Technical SEO: Core Web Vitals, SSR, crawlability, security
-     - Content Quality: E-E-A-T signals, readability, original data
-     - Schema Markup: detection, validation, completeness
+   - Run resource scripts for data collection:
+     - `python skillschain/resources/geo-seo/scripts/fetch_page.py <url> full`
+     - `python skillschain/resources/geo-seo/scripts/citability_scorer.py <url>`
+     - `python skillschain/resources/geo-seo/scripts/brand_scanner.py "<brand>" <domain>`
+     - `python skillschain/resources/geo-seo/scripts/llmstxt_generator.py <url> validate`
+   - Analyze outputs across 5 tracks: AI Visibility, Platform, Technical, Content, Schema
 
 3. **HYPOTHESIZE** — Score each content block
-   - Evaluate passages for AI citation readiness (134-167 word optimal blocks)
-   - Check 14+ AI crawlers (GPTBot, ClaudeBot, PerplexityBot, etc.)
-   - Scan brand mentions across 10+ platforms
+   - Use `citability_scorer.py` output to evaluate passages (134-167 word optimal blocks)
+   - Use `fetch_page.py robots` output to check 14+ AI crawlers
+   - Use `brand_scanner.py` output to map brand presence across 10+ platforms
 
 4. **EVALUATE** — Composite scoring
    - Calculate weighted GEO Score (0-100)
@@ -184,15 +190,6 @@ Tools (Model Context Protocol) required by this skill.
   - **instructions**: Requires Chrome/Chromium installed locally. The agent uses it for page fetching, screenshots and rendering analysis.
 - **description**: Web navigation, page fetching, rendering analysis and screenshots for visual audit.
 
-### mcp-filesystem
-
-- **type**: filesystem
-- **required**: true
-- **auth**:
-  - **strategy**: agent-resolved
-  - **instructions**: Local workspace access. No configuration needed.
-- **description**: Writing audit reports, JSON-LD schemas and llms.txt to the project directory.
-
 ### mcp-skillschain
 
 - **type**: api
@@ -202,39 +199,22 @@ Tools (Model Context Protocol) required by this skill.
   - **instructions**: Connects to SkillsChain MCP Server automatically.
 - **description**: Report execution telemetry and skill rating via `report_execution` and `rate_skill`.
 
-## A2A Collaborators
+## Resources
 
-Other agents that collaborate with this skill via Agent-to-Agent protocol.
+Python scripts included in this skill repository that serve as analysis utilities.
+The agent **must** download them before execution.
 
-### geo-ai-visibility
+**Repository:** `https://github.com/THIAGONOMA/geo-seo-skills`
+**Local path:** `skillschain/resources/geo-seo/`
 
-- **role**: Analyze GEO citability, AI crawler access, llms.txt and brand mentions
-- **protocol**: subagent
-- **authInstructions**: Automatic — launched as parallel subagent within the same session.
+| Script | Description |
+|--------|-------------|
+| `scripts/citability_scorer.py` | AI citability scoring per content block (0-100). Evaluates answer quality, self-containment, readability, statistical density and uniqueness. |
+| `scripts/fetch_page.py` | Page fetcher with modes: `page` (HTML + meta + headings), `robots` (AI crawler directives for 14+ bots), `llms` (llms.txt detection), `full` (all combined). |
+| `scripts/brand_scanner.py` | Brand mention scanner across YouTube, Reddit, Wikipedia, LinkedIn and 7 other platforms. Includes live Wikipedia/Wikidata API checks. |
+| `scripts/llmstxt_generator.py` | Validates existing llms.txt format or generates one by crawling the site and categorizing pages. |
 
-### geo-platform-analysis
-
-- **role**: Platform-specific optimization for ChatGPT, Perplexity, Google AIO
-- **protocol**: subagent
-- **authInstructions**: Automatic — launched as parallel subagent within the same session.
-
-### geo-technical
-
-- **role**: Technical SEO audit including Core Web Vitals, SSR, crawlability
-- **protocol**: subagent
-- **authInstructions**: Automatic — launched as parallel subagent within the same session.
-
-### geo-content
-
-- **role**: Content quality and E-E-A-T assessment
-- **protocol**: subagent
-- **authInstructions**: Automatic — launched as parallel subagent within the same session.
-
-### geo-schema
-
-- **role**: Schema markup detection, validation and generation
-- **protocol**: subagent
-- **authInstructions**: Automatic — launched as parallel subagent within the same session.
+**Dependencies:** `pip install -r requirements.txt` (requests, beautifulsoup4, lxml)
 
 ## Post-Execution Callbacks
 
@@ -306,29 +286,20 @@ Skills that complement or are frequently used together:
 ## Repository Structure
 
 ```
-geo-seo/
-├── SKILL.md           # This document (mandatory)
-├── README.md          # Description for humans
-├── LICENSE            # MIT License
-├── geo/               # Main orchestrator
-│   └── SKILL.md       # Primary skill file (Claude Code native format)
-├── skills/            # 13 specialized sub-skills
-│   ├── geo-audit/
-│   ├── geo-citability/
-│   ├── geo-crawlers/
-│   ├── geo-llmstxt/
-│   ├── geo-brand-mentions/
-│   ├── geo-platform-optimizer/
-│   ├── geo-schema/
-│   ├── geo-technical/
-│   ├── geo-content/
-│   ├── geo-report/
-│   ├── geo-prospect/
-│   ├── geo-proposal/
-│   └── geo-compare/
-├── agents/            # 5 parallel subagents
-├── scripts/           # Python utilities
-└── schema/            # JSON-LD templates
+geo-seo-skills/
+├── SKILL.md                        # This document (SkillsChain standard)
+├── README.md                       # Description for humans
+├── LICENSE                         # MIT License
+├── requirements.txt                # Python dependencies
+├── scripts/                        # Resource scripts (downloadable)
+│   ├── citability_scorer.py        # AI citability scoring (0-100)
+│   ├── fetch_page.py               # Page fetch + robots.txt + llms.txt
+│   ├── brand_scanner.py            # Brand mention scanner
+│   └── llmstxt_generator.py        # llms.txt validator & generator
+├── examples/                       # Usage examples
+│   └── full-audit-example.md       # Complete 7-phase GEO audit
+└── tests/                          # Test scenarios
+    └── test-scenarios.md           # Scenarios for all scripts
 ```
 
 ## Publication Checklist
@@ -337,8 +308,8 @@ geo-seo/
 - [x] Name and description in English
 - [x] At least 2 triggers defined (14 triggers)
 - [x] At least 2 cognitive phases selected (7 phases)
-- [x] Detailed workflow with MCP references
+- [x] Detailed workflow with resource script references
 - [x] Best practices documented (9 practices)
-- [x] MCPs with clear auth instructions
+- [x] Resources section with downloadable scripts
 - [x] README.md for humans
 - [x] Public repository on GitHub
